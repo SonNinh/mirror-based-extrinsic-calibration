@@ -55,8 +55,9 @@ def main():
 
     img, vertice_shape = create_checkboard(monitor_res, monitor_size)
     cv2.imshow("full window", img)
+    cv2.waitKey(0)
 
-    return
+    # return
     # define a video capture object
     vid = cv2.VideoCapture(0)
     vid.set(cv2.CAP_PROP_FRAME_WIDTH, 640)

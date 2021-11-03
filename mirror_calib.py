@@ -35,16 +35,28 @@ def forward(obj_ref: np.ndarray,
     return obj_mir
     
 
+def axis_to_norm(axis_vec):
+    norm_vec = np.cross(
+        axis_vec,
+        np.roll(axis_vec, 1, axis=0)
+    )
+    norm_vec /= np.linalg.norm(norm_vec, axis=1, keepdims=True)
 
-def backward(obj_mir: np.ndarray):
-    Q = obj_mir - np.roll(obj_mir, -1, axis=0)
-    M = np.matmul(np.transpose(Q, (0, 2, 1)), Q)
-    print(M)
+    return norm_vec
 
+
+def backward(obj_mir: np.ndarray, mij_gt):
+    Q = obj_mir - np.roll(obj_mir, -1, axis=0) #(M, N, 3)
+    M = np.matmul(
+        np.transpose(Q, (0, 2, 1)), 
+        Q
+    )
     e_val, e_vec = np.linalg.eig(M)
-    print(e_val)
-    print(e_vec)
-    # return mij  
+    idx_min = np.argmin(e_val, axis=1)
+    mij = e_vec[np.arange(len(idx_min)), idx_min]
+    
+    print(np.matmul(M, np.expand_dims(mij_gt, axis=-1)))
+    return mij  
 
 
 def main():
@@ -66,11 +78,17 @@ def main():
 
     obj_mir = forward(obj_ref, norm_vec, mirror_distance)
 
-    mij = np.cross(norm_vec[1], norm_vec[2])
+    mij = np.cross(norm_vec, np.roll(norm_vec, -1, axis=0))
+    print('groundtruth mij')
+    print(mij)
 
-    est_mij = backward(obj_mir)
+    est_mij = backward(obj_mir, mij)
+    print("estimated mij")
+    print(est_mij)
 
-    # print(mij)
+    norm_vec = axis_to_norm(est_mij)
+    print("norm vector")
+    print(norm_vec)
 
     # print(est_mij)
 

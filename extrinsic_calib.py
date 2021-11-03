@@ -38,6 +38,8 @@ cv2.destroyAllWindows()
 ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
     objpoints, imgpoints, img.shape[0:2], None, None
 )
+print(objpoints[0].shape)
+print(imgpoints[0].shape)
 
 cam_calib = {'mtx': np.eye(3), 'dist': np.zeros((1, 5))}
 
