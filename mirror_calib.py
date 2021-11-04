@@ -67,7 +67,7 @@ def axis_to_norm(axis_vec):
     return norm_vec
 
 
-def backward(obj_mir: np.ndarray, mij_gt):
+def backward(obj_mir: np.ndarray):
     Q = obj_mir - np.roll(obj_mir, -1, axis=0) #(M, N, 3)
     M = np.matmul(
         np.transpose(Q, (0, 2, 1)), 
@@ -79,18 +79,12 @@ def backward(obj_mir: np.ndarray, mij_gt):
     mij = e_vec[np.arange(len(idx_min)), idx_min]
     return mij  
 
-def mirror_pose(thetax, thetay, thetaz):
-    return np.array((
-        np.cos(thetax) * np.cos(thetay),
-        np.cos(thetax) * np.sin(thetay),
-        np.sin(thetaz)
-    ))
 
-def compute_RTd(norm_vec, obj_ref, obj_mir):
+def compute_RTd(norm_vec, obj_ref_X, obj_mir):
     '''
     Params:
         norm_vec: (M, 3)
-        obj_ref: (N, 3)
+        obj_ref_X: (N, 3)
         obj_mir: (M, N, 3)
     '''
     A = np.zeros((27, 12))
@@ -101,7 +95,7 @@ def compute_RTd(norm_vec, obj_ref, obj_mir):
     A[9:18, 4] = 2 * np.tile(norm_vec[1], 3)
     A[18:27, 5] = 2 * np.tile(norm_vec[2], 3)
     
-    xy = np.repeat(obj_ref[:, :2], 3, axis=0)
+    xy = np.repeat(obj_ref_X[:, :2], 3, axis=0)
     xy = np.repeat(xy, 3, axis=1)
 
     A[:, 6:] = np.tile(xy, (3, 1)) * np.tile(np.eye(3), (9, 2))
@@ -126,15 +120,6 @@ def compute_RTd(norm_vec, obj_ref, obj_mir):
     R = np.array((r1, r2, r3)).T
     T = Z[:3]
     d = Z[3: 6]
-
-    Z_gt = np.array((
-        150., 100., 10., 
-        300, 300, 300, 
-        1, 0, 0, 
-        0, np.cos(15/180*np.pi), -np.sin(15/180*np.pi)
-    )).reshape(-1, 1)
-
-    print(A@Z_gt.reshape(12, 1) - B.reshape(-1, 1))
 
     return R, T, d
 
@@ -162,7 +147,7 @@ def main():
     norm_vec /= np.linalg.norm(norm_vec, axis=1, keepdims=True)
     print("\nGroundtruth norm vectors:")
     print(norm_vec)
-    mirror_distance = np.array((300., 300., 300.)).reshape(-1, 1) # (M, 1)
+    mirror_distance = np.array((200., 300., 300.)).reshape(-1, 1) # (M, 1)
 
     obj_mir = forward(obj_ref, norm_vec, mirror_distance)
 
@@ -178,12 +163,19 @@ def main():
     print("\nNorm vector")
     print(norm_vec)
 
-    R, T, d = compute_RTd(norm_vec, obj_ref, obj_mir)
+    R, T, d = compute_RTd(norm_vec, obj_ref_X, obj_mir)
 
-    print("Result:")
+    print("\nResult:")
+    print("R:")
     print(R)
+    print("T:")
     print(T)
+    print("d:")
+    print(d)
+    print("\nEstimated reference object in Camera corrdinate:")
     print((R@(obj_ref_X.T)).T + T)
+
+    
 
 
 if __name__ == "__main__":
