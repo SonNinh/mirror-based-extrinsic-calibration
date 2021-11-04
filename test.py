@@ -25,7 +25,7 @@ def main():
         (1000, 0, 0),
         (1000, 1000, 0),
         (1000, 1000, 1000),
-        (800, 0, 1000)
+        (1000, 0, 1000)
     ))
 
     points_3d = rot_x(np.pi/2, points_3d.T).T
@@ -55,12 +55,6 @@ def main():
         # flags=cv2.SOLVEPNP_ITERATIVE
     )
 
-    
-    # modelAxes = np.array([
-    #     np.array((car_x[0, 0], car_y[0, 0], car_z)).reshape(1, 3)
-    #     # np.array((car_x[0], car_y[0], car_z)).reshape(1, 3)
-        
-    # ]) # (1, 1, 3)
 
     # project 3D point on front image 
     projAxes, _ = cv2.projectPoints(
