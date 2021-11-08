@@ -1,4 +1,3 @@
-# import the opencv library
 import cv2
 import numpy as np
 
@@ -42,7 +41,7 @@ def create_checkboard(monitor_res, monitor_size):
             ymax = ymin + square_pixel
             checkboard[xmin:xmax, ymin:ymax] = color
 
-    return checkboard, vertice_shape
+    return checkboard, objp, vertice_shape
 
 
 
@@ -50,14 +49,19 @@ def main():
     cv2.namedWindow("full window", cv2.WINDOW_NORMAL)
     cv2.setWindowProperty("full window", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-    monitor_res = (1080, 1920) # pixel
-    monitor_size = (194, 344) # mm
+    monitor_res = (900, 1440) # (1080, 1920) # pixel
+    monitor_size = (180, 288) # mm
 
-    img, vertice_shape = create_checkboard(monitor_res, monitor_size)
+    # img = np.zeros(monitor_res, dtype=np.uint8)
+    # img[:20, :20] = 255
+
+    img, objp, vertice_shape = create_checkboard(monitor_res, monitor_size)
+    print(vertice_shape)
+    print(objp)
     cv2.imshow("full window", img)
     cv2.waitKey(0)
-
-    # return
+    return
+    
     # define a video capture object
     vid = cv2.VideoCapture(0)
     vid.set(cv2.CAP_PROP_FRAME_WIDTH, 640)

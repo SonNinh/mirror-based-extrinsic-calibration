@@ -1,7 +1,4 @@
 import numpy as np
-from numpy.core.numeric import identity
-from numpy.linalg import norm
-
 
 
 def rot_x(alpha, points):
@@ -11,6 +8,7 @@ def rot_x(alpha, points):
         (0, np.sin(alpha), np.cos(alpha))
     ))
     return np.matmul(R, points)
+
 
 def rot_y(alpha, points):
     R = np.array((
@@ -124,61 +122,79 @@ def compute_RTd(norm_vec, obj_ref_X, obj_mir):
     return R, T, d
 
 
-def main():
-    # reference object
+def create_synthesis_data():
+    # reference object in screen coordinate
     obj_ref_X = np.array((
         (0., 0., 0.),
         (255., 100., 0.),
         (10., 150., 0.),
     )) # (N, 3)
 
+    # reference object in camera coordinate
     obj_ref = rot_x(15/180*np.pi, obj_ref_X.T).T
     obj_ref += np.array((150., 100., 10.))
     print("Reference object in Camera coordinate:")
     print(obj_ref)
 
-    # 3 predefined mirror poses
+    # normal vectors of mirror poses
     norm_vec = np.array((
         (0., 0., -1),
         (1., 0., -1.),
         (-1., 1., -1.)
     )) # (M, 3)
-    
     norm_vec /= np.linalg.norm(norm_vec, axis=1, keepdims=True)
     print("\nGroundtruth norm vectors:")
     print(norm_vec)
+
+    # distance from camera to mirror poses
     mirror_distance = np.array((200., 300., 300.)).reshape(-1, 1) # (M, 1)
 
+    # mirrored object in camera coordinate
     obj_mir = forward(obj_ref, norm_vec, mirror_distance)
 
+    # groundtruth vectors lie on intersection of each couple of mirror poses
     mij = np.cross(norm_vec, np.roll(norm_vec, -1, axis=0))
     print('\nGroundtruth mij')
     print(mij)
 
-    est_mij = backward(obj_mir, mij)
-    print("\nEstimated mij")
-    print(est_mij)
+    return obj_ref_X, obj_mir
 
-    norm_vec = axis_to_norm(est_mij)
-    print("\nNorm vector")
-    print(norm_vec)
 
+def mirror_calib(obj_ref_X, obj_mir, debug=False):
+    
+    if debug:
+        obj_ref_X, obj_mir = create_synthesis_data()
+
+    # estimated vectors lie on intersection of each couple of mirror poses
+    mij = backward(obj_mir)
+
+    # convert axis vecotors to normal vectors
+    norm_vec = axis_to_norm(mij)
+
+    # compute transfomation between screen and camera 
     R, T, d = compute_RTd(norm_vec, obj_ref_X, obj_mir)
 
-    print("\nResult:")
-    print("R:")
-    print(R)
-    print("T:")
-    print(T)
-    print("d:")
-    print(d)
-    print("\nEstimated reference object in Camera corrdinate:")
-    print((R@(obj_ref_X.T)).T + T)
+    if debug:
+        print("\nEstimated mij")
+        print(mij)
+        print("\nNorm vector")
+        print(norm_vec)
+        print("\nResult:")
+        print("R:")
+        print(R)
+        print("T:")
+        print(T)
+        print("d:")
+        print(d)
+        print("\nEstimated reference object in Camera corrdinate:")
+        print((R@(obj_ref_X.T)).T + T)
+
+    return R, T, d
 
     
 
 
 if __name__ == "__main__":
-    main()
+    mirror_calib(None, None, debug=True)
 
 
