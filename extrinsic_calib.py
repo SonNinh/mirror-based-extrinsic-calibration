@@ -123,6 +123,7 @@ def transform(rvec, tvec, objp):
 
     return ((R @ objp.T) + tvec).T 
 
+
 def correct_order(corners: np.ndarray,
                   vertice_shape):
     if corners[0, 0, 1] - corners[-1, 0, 1] > 0:
@@ -164,6 +165,7 @@ def get_area(p0, p1, p2):
     area = 0.5 * ((p0[0]*(p1[1]-p2[1])) + (p1[0]*(p2[1]-p0[1])) + (p2[0]*(p0[1]-p1[1])))
     return area
 
+
 def get_ref_mirror_points(centers:np.ndarray):
     assert len(centers) >= 3, "number of detected checker board must greater than 2"
     max_area = 0
@@ -186,6 +188,8 @@ def calib(img_root, intrinsic_fname=''):
         objp = objp.reshape((-1, 3))
 
         monitor_size = (*data['mon_size'], 0)
+        monitor_res = data['mon_res']
+
     
     print("Object points:")
     print(objp)
@@ -265,6 +269,9 @@ def calib(img_root, intrinsic_fname=''):
     cam_calib['dist'] = dist
     cam_calib['R'] = R
     cam_calib['t'] = t
+    cam_calib['mon_res'] = monitor_res[:2]
+    cam_calib['mon_size'] = monitor_size[:2]
+    
 
     pickle.dump(cam_calib, open(path.join(img_root, "calib.pkl"), "wb"))
 
