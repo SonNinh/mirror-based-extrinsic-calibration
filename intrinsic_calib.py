@@ -1,3 +1,4 @@
+import os
 import cv2
 import numpy as np
 import glob
@@ -5,9 +6,9 @@ from os import path
 import pickle
 
 
-def calib(img_root):
+def calib(img_root, vertice_shape):
 
-    vertice_shape = (9, 6)
+    
 
     # termination criteria
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -21,31 +22,56 @@ def calib(img_root):
     # Arrays to store object points and image points from all the images.
     objpoints = [] # 3d point in real world space
     imgpoints = [] # 2d points in image plane.
-    centers = []
-    detected_name = []
 
     images = sorted(glob.glob(path.join(img_root, '*.png')))
 
-    for fname in images:
-        img = cv2.imread(fname)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        # cv2.imshow("image", img)
-        # cv2.waitKey(0)
-        # Find the chess board corners
-        ret, corners = cv2.findChessboardCorners(gray, vertice_shape, None)
-        # If found, add object points, image points (after refining them)
-        if ret:
-            detected_name.append(fname)
-            objpoints.append(objp)
-            corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1,-1), criteria)
-            # corners2 = correct_order(corners2, vertice_shape)
-            imgpoints.append(corners2)
-            centers.append(np.mean(corners2, axis=0).reshape(-1))
-            # Draw and display the corners
-            # cv2.drawChessboardCorners(img, vertice_shape, corners2, ret)
-            # cv2.imshow('img', img)
-            # cv2.waitKey()
+    if len(images) > 5:
+        for fname in images:
+            img = cv2.imread(fname)
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            # cv2.imshow("image", img)
+            # cv2.waitKey(0)
+            # Find the chess board corners
+            ret, corners = cv2.findChessboardCorners(gray, vertice_shape, None)
+            # If found, add object points, image points (after refining them)
+            if ret:
+                objpoints.append(objp)
+                corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1,-1), criteria)
+                imgpoints.append(corners2)
     
+    else:
+        cap = cv2.VideoCapture(2)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        img_id = 0
+
+        ret, img = cap.read()
+
+        while(ret):
+            ret, img = cap.read()
+            cv2.imshow('cam', img)
+            
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            # ret_board, corners = cv2.findChessboardCorners(gray, vertice_shape, None)
+            # If found, add object points, image points (after refining them)
+            # if ret_board:
+            #     objpoints.append(objp)
+            #     corners2 = cv2.cornerSubPix(gray, corners, (11, 11), (-1,-1), criteria)
+            #     imgpoints.append(corners2)
+            #     cv2.drawChessboardCorners(img, vertice_shape, corners2, ret)
+            #     cv2.imshow("board", img)
+
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                break
+            elif key == ord('s'):
+                cv2.imwrite(f"{img_root}/{img_id}.png", img)
+                img_id += 1
+            
+            
+
+        cap.release()
+        cv2.destroyAllWindows()
 
 
     cv2.destroyAllWindows()
@@ -70,7 +96,11 @@ def calib(img_root):
 
 if __name__ == "__main__":
 
-    camera_name = 'G5'
+    camera_name = 'Logitech'
     img_root = f'data/intrinsic/cam{camera_name}'
+    if not os.path.isdir(img_root):
+        os.mkdir(img_root)
+        
+    vertice_shape = (8, 6)
     
-    calib(img_root)
+    calib(img_root, vertice_shape)

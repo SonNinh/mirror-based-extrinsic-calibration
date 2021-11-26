@@ -122,6 +122,7 @@ def compute_RTd(norm_vec, obj_ref_X, obj_mir):
 
     r1 = Z[-6:-3]
     r1 /= np.linalg.norm(r1)
+
     r2 = Z[-3:]
     r2 /= np.linalg.norm(r1)
     r3 = np.cross(r1, r2)

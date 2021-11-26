@@ -3,6 +3,8 @@ import os
 import cv2
 import numpy as np
 import pickle
+import yaml
+import glob
 
 
 def create_checkboard(monitor_res, monitor_size):
@@ -54,7 +56,7 @@ def create_checkboard(monitor_res, monitor_size):
 
 
 
-def main(img_root, monitor_res, monitor_size):
+def main(camcap, img_root, monitor_res, monitor_size):
     cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
     # cv2.setWindowProperty("camera", cv2.WND_PROP_TOPMOST, 1)
 
@@ -78,16 +80,16 @@ def main(img_root, monitor_res, monitor_size):
     
     cv2.imshow("full window", img)
 
-    # define a video capture object
-    vid = cv2.VideoCapture(0)
-    vid.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    
+    for fname in glob.glob(path.join(img_root, '*.png')):
+        os.remove(fname)
+
     n = 0
 
-    ret, frame = vid.read()
+    ret, frame = camcap.read()
 
     while(ret):
-        ret, frame = vid.read()
+        ret, frame = camcap.read()
 
         cv2.imshow('camera', frame)
 
@@ -98,19 +100,26 @@ def main(img_root, monitor_res, monitor_size):
             cv2.imwrite(f'{img_root}/{n}.png', frame)
             n += 1
         
-
-    vid.release()
     cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
-    mon_dict = {
-        'G5': ((1920, 1080), (344, 194)), # width, height
-        'Dell24': ((1920, 1080), (527, 296))
-    }
 
-    monitor_name = 'Dell24'
-    camera_name = 'G5'
+    with open("hardware_specs.yaml", "r") as stream:
+        data = yaml.safe_load(stream)
+        mon_dict = data["monitor"]
+        cam_dict = data["camera"]
+
+    # mon_dict = {
+    #     'G5': ((1920, 1080), (344, 194)), # width, height
+    #     'Dell24': ((1920, 1080), (527, 296)),
+    #     'Dell27': ((1920, 1080), (598, 336)),
+    #     'Dell274K': ((1920, 1080), (610, 350))
+        
+    # }
+
+    monitor_name = input("Monitor name: ")
+    camera_name = input("Camera name: ")
 
     img_root = f'data/extrinsic/mon{monitor_name}_cam{camera_name}'
     if not path.isdir(img_root):
@@ -118,4 +127,11 @@ if __name__ == "__main__":
     
     monitor_res, monitor_size = mon_dict[monitor_name]  # pixel, mm
 
-    main(img_root, monitor_res, monitor_size)
+    # define a video capture object
+    camcap = cv2.VideoCapture(4)
+    camcap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_dict[camera_name][0])
+    camcap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_dict[camera_name][1])
+
+    main(camcap, img_root, monitor_res, monitor_size)
+
+    camcap.release()
