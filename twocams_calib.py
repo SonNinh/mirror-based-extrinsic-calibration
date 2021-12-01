@@ -21,36 +21,30 @@ def correct_order(corners: np.ndarray,
 
 
 
-def main(vertice_shape, cam_bridge_name, cam_target_name, monitor_name):
+def calib(img_root_bridge, img_root_target, vertice_shape, 
+          cap_bridge, cap_target, 
+          cam_bridge_name, cam_target_name,
+          monitor_res, monitor_size
+          ):
+
+    cv2.namedWindow("bridge camera", cv2.WINDOW_NORMAL)
+    cv2.moveWindow("bridge camera", 0, 0)
+    cv2.namedWindow("target camera", cv2.WINDOW_NORMAL)
+    cv2.moveWindow("target camera", monitor_res[0]//2, 0)
+    
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     objp = np.zeros(
         (vertice_shape[0]*vertice_shape[1], 3), 
         np.float32
     )
     objp[:,:2] = np.mgrid[:vertice_shape[0], :vertice_shape[1]].T.reshape(-1, 2)
-    objp *= 30
-
-    with open("hardware_specs.yaml", "r") as stream:
-        data = yaml.safe_load(stream)
-        mon_dict = data["monitor"]
-        cam_dict = data["camera"]
-
-    img_root = f'data/extrinsic/mon{monitor_name}_cam{cam_target_name}'
-    if not path.isdir(img_root):
-        os.mkdir(img_root)
+    objp *= 29
     
-    camA = 4
-    capA = cv2.VideoCapture(camA)
-    capA.set(cv2.CAP_PROP_FRAME_WIDTH, cam_dict[cam_bridge_name][0])
-    capA.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_dict[cam_bridge_name][1])
-    retA, frameA = capA.read()
+    retA, frameA = cap_bridge.read()
     calibA = pickle.load(open(f'data/intrinsic/cam{cam_bridge_name}/calib.pkl', 'rb'))
 
-    camB = 2 #IR camera
-    capB = cv2.VideoCapture(camB)
-    capB.set(cv2.CAP_PROP_FRAME_WIDTH, cam_dict[cam_target_name][0])
-    capB.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_dict[cam_target_name][1])
-    retB, frameB = capB.read()
+    
+    retB, frameB = cap_target.read()
     calibB = pickle.load(open(f'data/intrinsic/cam{cam_target_name}/calib.pkl', 'rb'))
 
     
@@ -71,8 +65,7 @@ def main(vertice_shape, cam_bridge_name, cam_target_name, monitor_name):
 
 
             if ret_board_A and ret_board_B:
-                capA.release()
-                capB.release()
+                
                 cv2.destroyAllWindows()
 
                 
@@ -98,7 +91,7 @@ def main(vertice_shape, cam_bridge_name, cam_target_name, monitor_name):
                 M_A_to_B = MB @ np.linalg.inv(MA)
 
                 calib_mon_to_A = pickle.load(
-                    open(f"data/extrinsic/mon{monitor_name}_cam{cam_bridge_name}/calib.pkl", "rb")
+                    open(path.join(img_root_bridge, "calib.pkl"), "rb")
                 )
                 M_mon_to_A = np.zeros((4, 4))
                 M_mon_to_A[:3, :3] = calib_mon_to_A["R"]
@@ -118,16 +111,18 @@ def main(vertice_shape, cam_bridge_name, cam_target_name, monitor_name):
                 output = dict()
                 output["R"] = R
                 output["t"] = t
-                output["mon_res"], output["mon_size"] = mon_dict[monitor_name]
+                output["mon_res"] = monitor_res
+                output["mon_size"] = monitor_size
+                
                 pickle.dump(
                     output, 
-                    open(path.join(img_root, "calib.pkl"), "wb")
+                    open(path.join(img_root_target, "calib.pkl"), "wb")
                 )
 
                 visual(
                     R, t, 
                     np.array(
-                        (*(mon_dict[monitor_name][1]), 1), 
+                        (*monitor_size, 1), 
                         dtype=np.float32
                     )
                 )
@@ -136,8 +131,8 @@ def main(vertice_shape, cam_bridge_name, cam_target_name, monitor_name):
         
         
 
-        retA, frameA = capA.read()
-        retB, frameB = capB.read()
+        retA, frameA = cap_bridge.read()
+        retB, frameB = cap_target.read()
 
     return
 
@@ -149,5 +144,34 @@ if __name__ == "__main__":
     cam_target_name = input("Traget camera name: ")
     monitor_name = input("Monitor name: ")
 
+    with open("hardware_specs.yaml", "r") as stream:
+        data = yaml.safe_load(stream)
+        mon_dict = data["monitor"]
+        cam_dict = data["camera"]
 
-    main(vertice_shape, cam_bridge_name, cam_target_name, monitor_name)
+    
+    
+    
+    cap_bridge = cv2.VideoCapture(cam_dict[cam_bridge_name]['index'])
+    cap_bridge.set(cv2.CAP_PROP_FRAME_WIDTH, cam_dict[cam_bridge_name]['res'][0])
+    cap_bridge.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_dict[cam_bridge_name]['res'][1])
+
+    cap_target = cv2.VideoCapture(cam_dict[cam_target_name]['index'])
+    cap_target.set(cv2.CAP_PROP_FRAME_WIDTH, cam_dict[cam_target_name]['res'][0])
+    cap_target.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_dict[cam_target_name]['res'][1])
+
+    img_root_bridge = f"data/extrinsic/mon{monitor_name}_cam{cam_bridge_name}"
+    img_root_target = f'data/extrinsic/mon{monitor_name}_cam{cam_target_name}'
+    if not path.isdir(img_root_target):
+        os.mkdir(img_root_target)
+
+    calib(
+        img_root_bridge, img_root_target, 
+        vertice_shape, 
+        cap_bridge, cap_target, 
+        cam_bridge_name, cam_target_name,
+        mon_dict[monitor_name]['res'], mon_dict[monitor_name]['size']
+    )
+
+    cap_bridge.release()
+    cap_target.release()

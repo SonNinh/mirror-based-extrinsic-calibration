@@ -9,14 +9,15 @@ from mpl_toolkits.mplot3d import proj3d
 
 class Arrow3D(FancyArrowPatch):
     def __init__(self, xs, ys, zs, *args, **kwargs):
-        FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
+        super().__init__((0,0), (0,0), *args, **kwargs)
         self._verts3d = xs, ys, zs
 
-    def draw(self, renderer):
+    def do_3d_projection(self, renderer=None):
         xs3d, ys3d, zs3d = self._verts3d
         xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
-        self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-        FancyArrowPatch.draw(self, renderer)
+        self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
+
+        return np.min(zs)
 
 def axisEqual3D(ax):
     extents = np.array([getattr(ax, 'get_{}lim'.format(dim))() for dim in 'xyz'])
@@ -27,9 +28,10 @@ def axisEqual3D(ax):
     for ctr, dim in zip(centers, 'xyz'):
         getattr(ax, 'set_{}lim'.format(dim))(ctr - r, ctr + r)
 
-def visual(R:np.ndarray, 
-           t:np.ndarray, 
-           monitor_size:Tuple # (width, height)
+
+def visual(Rs:List[np.ndarray], 
+           ts:List[np.ndarray], 
+           monitor_sizes:List[Tuple] # (width, height)
            ) -> None:
 
 
@@ -45,26 +47,36 @@ def visual(R:np.ndarray,
     # camera origin
     cam_orogin = origin.reshape(-1, 2, 3)
 
-    # monitor origin
-    monitor_origin = (R @ origin.T).T + t
-    monitor_origin = monitor_origin.reshape(-1, 2, 3)
+    allpoints = [cam_orogin.reshape(-1, 3)]
+    all_mon_points = []
+    all_mon_origin = []
+    for R, t, monitor_size in zip(Rs, ts, monitor_sizes):
+        # monitor origin
+        monitor_origin = (R @ origin.T).T + t
+        monitor_origin = monitor_origin.reshape(-1, 2, 3)
+        all_mon_origin.append(monitor_origin)
 
-    # monitor
-    mon_points = np.array([
-        [0., 0., 0.],
-        [1., 0., 0.],
-        [1., 1., 0.],
-        [0., 1., 0.]
-    ]) * monitor_size
-    mon_points = (R @ mon_points.T).T + t
-    mon_points = np.repeat(mon_points, 2, axis=0)
-    mon_points = np.roll(mon_points, 1, axis=0).reshape(-1, 2, 3)
-    
-    allpoints = np.concatenate((
-        cam_orogin.reshape(-1, 3),
-        monitor_origin.reshape(-1, 3),
-        mon_points.reshape(-1, 3)
-    ))
+        # monitor
+        mon_points = np.array([
+            [0., 0., 0.],
+            [1., 0., 0.],
+            [1., 1., 0.],
+            [0., 1., 0.]
+        ]) * monitor_size
+        mon_points = (R @ mon_points.T).T + t
+        mon_points = np.repeat(mon_points, 2, axis=0)
+        mon_points = np.roll(mon_points, 1, axis=0).reshape(-1, 2, 3)
+        all_mon_points.append(mon_points)
+
+        allpoints.append(monitor_origin.reshape(-1, 3))
+        allpoints.append(mon_points.reshape(-1, 3))
+                
+    # allpoints = np.concatenate((
+    #     cam_orogin.reshape(-1, 3),
+    #     monitor_origin.reshape(-1, 3),
+    #     mon_points.reshape(-1, 3)
+    # ))
+    allpoints = np.concatenate(allpoints)
     xmin, ymin, zmin = np.min(allpoints, axis=0) - 100
     xmax, ymax, zmax = np.max(allpoints, axis=0) + 100
     
@@ -84,26 +96,54 @@ def visual(R:np.ndarray,
 
 
     # Here we create the arrows:
-    for i in range(4):
-        ax.plot(mon_points[i, :, 0], mon_points[i, :, 1], mon_points[i, :, 2], color='b')
+    for mon_points in all_mon_points:
+        for i in range(4):
+            ax.plot(mon_points[i, :, 0], mon_points[i, :, 1], mon_points[i, :, 2], color='b')
 
     arrow_prop_dict = dict(mutation_scale=10, arrowstyle='->', shrinkA=0, shrinkB=0)
+
     a = Arrow3D(cam_orogin[0, :, 0], cam_orogin[0, :, 1], cam_orogin[0, :, 2], **arrow_prop_dict, color='r')
     ax.add_artist(a)
     a = Arrow3D(cam_orogin[1, :, 0], cam_orogin[1, :, 1], cam_orogin[1, :, 2], **arrow_prop_dict, color='b')
     ax.add_artist(a)
     a = Arrow3D(cam_orogin[2, :, 0], cam_orogin[2, :, 1], cam_orogin[2, :, 2], **arrow_prop_dict, color='g')
     ax.add_artist(a)
-    a = Arrow3D(monitor_origin[0, :, 0], monitor_origin[0, :, 1], monitor_origin[0, :, 2], **arrow_prop_dict, color='r')
-    ax.add_artist(a)
-    a = Arrow3D(monitor_origin[1, :, 0], monitor_origin[1, :, 1], monitor_origin[1, :, 2], **arrow_prop_dict, color='b')
-    ax.add_artist(a)
-    a = Arrow3D(monitor_origin[2, :, 0], monitor_origin[2, :, 1], monitor_origin[2, :, 2], **arrow_prop_dict, color='g')
-    ax.add_artist(a)
+
+    for monitor_origin in all_mon_origin:
+        a = Arrow3D(monitor_origin[0, :, 0], monitor_origin[0, :, 1], monitor_origin[0, :, 2], **arrow_prop_dict, color='r')
+        ax.add_artist(a)
+        a = Arrow3D(monitor_origin[1, :, 0], monitor_origin[1, :, 1], monitor_origin[1, :, 2], **arrow_prop_dict, color='b')
+        ax.add_artist(a)
+        a = Arrow3D(monitor_origin[2, :, 0], monitor_origin[2, :, 1], monitor_origin[2, :, 2], **arrow_prop_dict, color='g')
+        ax.add_artist(a)
 
     # nx = monitor_origin[0, 1] - monitor_origin[0, 0]
     # ny = monitor_origin[1, 1] - monitor_origin[1, 0]
     # nz = monitor_origin[2, 1] - monitor_origin[2, 0]
 
     plt.show()
+
+
+def visual_all():
+
+    import pickle
+
+    mon_left_fname = 'data/extrinsic/monDell24left_camIR/calib.pkl'
+    mon_middle_fname = 'data/extrinsic/monDell24middle_camIR/calib.pkl'
     
+    mon_left = pickle.load(
+        open(mon_left_fname, "rb")
+    )
+    mon_middle = pickle.load(
+        open(mon_middle_fname, "rb")
+    )   
+    print(mon_left)
+    print(mon_middle)
+    visual(
+        [mon_left['R'], mon_middle['R']],
+        [mon_left['t'], mon_middle['t']],
+        [(*mon_left['mon_size'], 1), (*mon_middle['mon_size'], 1)],
+    )
+
+if __name__ == "__main__":
+    visual_all()

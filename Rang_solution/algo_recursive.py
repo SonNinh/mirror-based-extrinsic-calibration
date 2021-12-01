@@ -11,14 +11,15 @@ from mpl_toolkits.mplot3d import proj3d
 
 class Arrow3D(FancyArrowPatch):
     def __init__(self, xs, ys, zs, *args, **kwargs):
-        FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
+        super().__init__((0,0), (0,0), *args, **kwargs)
         self._verts3d = xs, ys, zs
 
-    def draw(self, renderer):
+    def do_3d_projection(self, renderer=None):
         xs3d, ys3d, zs3d = self._verts3d
         xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
-        self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-        FancyArrowPatch.draw(self, renderer)
+        self.set_positions((xs[0],ys[0]),(xs[1],ys[1]))
+
+        return np.min(zs)
 
 def axisEqual3D(ax):
     extents = np.array([getattr(ax, 'get_{}lim'.format(dim))() for dim in 'xyz'])
@@ -278,9 +279,9 @@ def translation_error(T1, T2):
 def main():
     # gaze_origin, gaze_direction, obj_ref_X, R_org, T_org = create_synthesis_data()
 
-    mon_name = "G5"
-    cam_name = "G5"
-    with open(f"/home/sonnnb/Projects/gaze-point-estimation/demo/data/data_mon{mon_name}_cam{cam_name}.pkl", "rb") as f:
+    mon_name = "Dell24"
+    cam_name = "IR"
+    with open(f"/home/sonnbn/Projects/gaze-point-estimation/demo/data/data_mon{mon_name}_cam{cam_name}.pkl", "rb") as f:
         data = pickle.load(f)
  
     gaze_origin = np.array(data['gaze_origin']).reshape(-1, 3)
@@ -306,7 +307,7 @@ def main():
     # print(f'The tranlation error in the second iteration - absolute: %.2f, percentage: %.1f%%.' % (tran_error, per_error))
     
     print(k)
-    visual(R, T, (344, 194, 0), gaze_origin[10:14], gaze_direction[10:14])
+    visual(R, T, (527, 296, 0), gaze_origin[:], gaze_direction[:])
     return R, T, k  
 
 

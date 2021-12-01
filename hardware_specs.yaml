@@ -1,10 +1,33 @@
 monitor:
-  G5: [[1920, 1080], [344., 194]] # width, height
-  Dell24: [[1920, 1080], [527, 296]]
-  Dell27: [[1920, 1080], [598, 336]]
-  Dell274K: [[1920, 1080], [600, 338]]
+  G5: 
+    res: [1920, 1080]
+    size: [344, 194] # width, height
+  Dell24: 
+    res: [1920, 1080]
+    size: [527, 296]
+  Dell24left:
+    res: [1920, 1080]
+    size: [527, 296]
+  Dell24middle:
+    res: [1920, 1080]
+    size: [527, 296]
+  Dell24right:
+    res: [1920, 1080]
+    size: [527, 296]  
+  Dell27: 
+    res: [1920, 1080]
+    size: [598, 336]
+  Dell274K: 
+    res: [1920, 1080]
+    size: [600, 338]
 
 camera:
-  G5: [640, 480]
-  Logitech: [640, 480]
-  IR: [1280, 720]
+  G5: 
+    res: [640, 480]
+    index: 0
+  Logitech: 
+    res: [640, 480]
+    index: 4
+  IR: 
+    res: [1280, 720]
+    index: 2

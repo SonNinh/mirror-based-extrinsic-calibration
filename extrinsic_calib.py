@@ -73,10 +73,8 @@ def get_ref_mirror_points(centers:np.ndarray):
     return ref_point
 
 
-def calib(monitor_name, camera_name):
-    img_root = f'data/extrinsic/mon{monitor_name}_cam{camera_name}'
-    intrinsic_fname = f'data/intrinsic/cam{camera_name}/calib.pkl'
-
+def calib(img_root, intrinsic_fname):
+    
     with open(path.join(img_root, "checkboard_monitor.pkl"), "rb") as f:
         data = pickle.load(f)
         objp = data['objp']
@@ -128,7 +126,7 @@ def calib(monitor_name, camera_name):
     p0, p1, p2 = get_ref_mirror_points(centers)
     print("The 3 images used for extrinsic calib are:", detected_name[p0], detected_name[p1], detected_name[p2])
 
-    if intrinsic_fname is '':
+    if intrinsic_fname == '':
         ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
             objpoints, imgpoints, img.shape[0:2], None, None
         )
@@ -185,11 +183,12 @@ def calib(monitor_name, camera_name):
 if __name__ == "__main__":
     
 
-    monitor_name = 'Dell274K'
-    camera_name = 'Logitech'
+    # monitor_name = 'Dell274K'
+    # camera_name = 'Logitech'
     
-    # monitor_name = input("Monitor name: ")
-    # camera_name = input("Camera name: ")
+    monitor_name = input("Monitor name: ")
+    camera_name = input("Camera name: ")
 
-    
-    calib(monitor_name, camera_name)
+    img_root = f'data/extrinsic/mon{monitor_name}_cam{camera_name}'
+    intrinsic_fname = f'data/intrinsic/cam{camera_name}/calib.pkl'
+    calib(img_root, intrinsic_fname)

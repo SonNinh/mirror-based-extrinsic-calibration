@@ -56,8 +56,9 @@ def create_checkboard(monitor_res, monitor_size):
 
 
 
-def main(camcap, img_root, monitor_res, monitor_size):
+def collect(camcap, img_root, monitor_res, monitor_size):
     cv2.namedWindow("camera", cv2.WINDOW_NORMAL)
+    cv2.moveWindow("camera", monitor_res[0]//4*3, 0)
     # cv2.setWindowProperty("camera", cv2.WND_PROP_TOPMOST, 1)
 
     # check window flags at https://docs.opencv.org/4.5.3/d0/d90/group__highgui__window__flags.html#gaeedf4023e777f896ba6b9ffb156f57b8
@@ -132,6 +133,6 @@ if __name__ == "__main__":
     camcap.set(cv2.CAP_PROP_FRAME_WIDTH, cam_dict[camera_name][0])
     camcap.set(cv2.CAP_PROP_FRAME_HEIGHT, cam_dict[camera_name][1])
 
-    main(camcap, img_root, monitor_res, monitor_size)
+    collect(camcap, img_root, monitor_res, monitor_size)
 
     camcap.release()
